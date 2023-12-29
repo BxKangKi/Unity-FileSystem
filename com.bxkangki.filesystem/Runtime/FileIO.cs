@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Threading.Tasks;
 using System.IO;
+using System.Text;
 
 namespace FileSystem {
     public class FileIO {
@@ -22,14 +23,39 @@ namespace FileSystem {
             }
         }
 
-        public static void WriteJsonDataToBytes<T>(string path, T data, bool create = true) {
+        public static void WriteJsonDataToBase64<T>(string path, T data, bool create = true) {
             // chekc file already include command to merge path and gamePath itself,
             // so we should run check file first then merge file path and path below.
             CheckFile(path, create);
             if (File.Exists(path)) {
-                string json = JsonUtility.ToJson(data, true);
-                byte[] bytes = System.Text.Encoding.Default.GetBytes(json);
-                File.WriteAllBytes(path, bytes);
+                using(StreamWriter writer = new StreamWriter(path)) {
+                    try {
+                        string json = JsonUtility.ToJson(data, true);
+                        byte[] bytes = Encoding.UTF8.GetBytes(json);
+                        writer.Write(System.Convert.ToBase64String(bytes));
+                    } catch(IOException e) {
+                        LogSystem.Text(e.ToString());
+                    }
+                    writer.Close();
+                }
+            }
+        }
+
+        public static void WriteJsonDataEncryption<T>(string path, T data, string key, bool create = true) {
+            // chekc file already include command to merge path and gamePath itself,
+            // so we should run check file first then merge file path and path below.
+            CheckFile(path, create);
+            if (File.Exists(path)) {
+                using(StreamWriter writer = new StreamWriter(path)) {
+                    try {
+                        string json = JsonUtility.ToJson(data, true);
+                        DES des = new DES(key);
+                        writer.Write(des.Result(DesType.Encrypt, json));
+                    } catch(IOException e) {
+                        LogSystem.Text(e.ToString());
+                    }
+                    writer.Close();
+                }
             }
         }
 
@@ -52,17 +78,49 @@ namespace FileSystem {
         }
 
 
-        public static T ReadJsonDataFromBytes<T>(string path, bool create = true) {
+        public static T ReadJsonDataFromBase64<T>(string path, bool create = true) {
             string result = "";
             // chekc file already include command to merge path and gamePath itself,
             // so we should run check file first then merge file path and path below.
             CheckFile(path, create);
             if (File.Exists(path)) {
-                byte[] bytes = File.ReadAllBytes(path);
-                result = System.Text.Encoding.UTF8.GetString(bytes);
+                using(StreamReader reader = new StreamReader(path)) {
+                    try {
+                        result = reader.ReadToEnd();
+                        byte[] bytes = System.Convert.FromBase64String(result);
+                        result = Encoding.UTF8.GetString(bytes);
+                    } catch(IOException e) {
+                        LogSystem.Text(e.ToString());
+                    }
+                    reader.Close();
+                }
             }
             return JsonUtility.FromJson<T>(result);
         }
+
+
+        public static T ReadJsonDataEncryption<T>(string path, string key, bool create = true) {
+            string result = "";
+            // chekc file already include command to merge path and gamePath itself,
+            // so we should run check file first then merge file path and path below.
+            CheckFile(path, create);
+            if (File.Exists(path)) {
+                using(StreamReader reader = new StreamReader(path)) {
+                    try {
+                        result = reader.ReadToEnd();
+                        //byte[] bytes = System.Convert.FromBase64String(result);
+                        DES des = new DES(key);
+                        result = des.Result(DesType.Decrypt, result);
+                        //result = Encoding.UTF8.GetString(bytes);
+                    } catch(IOException e) {
+                        LogSystem.Text(e.ToString());
+                    }
+                    reader.Close();
+                }
+            }
+            return JsonUtility.FromJson<T>(result);
+        }
+
 
 
         public static async void WriteLineTextFile(string path, string data) {
