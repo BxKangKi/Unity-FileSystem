@@ -14,8 +14,7 @@ namespace FileSystem {
             var culture = new CultureInfo("en-US");
             data = string.Format("{0} >> {1}", localDate.ToString(culture), data);
             if (initalized) {
-                // string.Format("{0}{1}_{2}{3}", PATH, NAME, 0, EXTENSION)
-                FileIO.WriteLineTextFile(Path + "log_latest.txt", data);
+                FileIO.WriteLineTextFile(string.Format("{0}/{1}/log_latest.txt", Application.persistentDataPath, Path), data);
             }
         }
 
@@ -27,8 +26,8 @@ namespace FileSystem {
         }
 
         private static void CreateLogFile() {
-            FileIO.CreateDirectory(Path);
-            string p1 = Path + "log_latest.txt";
+            FileIO.CreateDirectory(string.Format("{0}/{1}/", Application.persistentDataPath, Path));
+            string p1 = string.Format("{0}/{1}/log_latest.txt", Application.persistentDataPath, Path);
             string createDate = FileIO.GetFileLastWriteTime(p1).ToString("d");
             string currentDate = System.DateTime.Now.Date.ToString("d");
 #if UNITY_EDITOR
@@ -36,7 +35,7 @@ namespace FileSystem {
             Debug.Log(currentDate);
 #endif
             if (createDate != currentDate) {
-                string p2 = string.Format(Path + "log_{0}.txt", createDate);
+                string p2 = string.Format("{0}/{1}/log_{2}.txt", Application.persistentDataPath, Path, createDate);
                 if (FileIO.CheckFile(p2)) {
                     FileIO.ReplaceFile(p1, p2);
                     FileIO.RemoveFile(p1);
